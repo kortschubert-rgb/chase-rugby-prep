@@ -132,6 +132,14 @@ details[open] summary{margin-bottom:8px}
 button.logitem{background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--ink);font:inherit;text-align:left;width:100%;cursor:pointer}
 .steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
 nav.tabs button{font-size:13px!important;letter-spacing:.6px!important}
+.vwrap{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.vbtn{align-self:flex-start;border:1px solid var(--pitch);background:transparent;color:var(--pitch);font:700 14px var(--body);padding:8px 12px;border-radius:999px;cursor:pointer}
+.plan-list .vbtn{padding:4px 10px;font-size:12px}
+.vbtn[aria-expanded="true"]{background:var(--pitch);color:var(--surface)}
+.vframe{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:8px;overflow:hidden}
+.vframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.linkbtn{border:0;background:none;color:var(--pitch);font:600 14px var(--body);text-decoration:underline;cursor:pointer;padding:0}
+.vbox a{color:var(--pitch);font-weight:600}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 nav.tabs .in{display:flex;width:100%;max-width:560px}
@@ -238,28 +246,75 @@ const EX = {
   spk:{name:"Side plank",kind:"check",block:"Core",rest:30,cue:["Elbow under shoulder.","Hips high, body straight."]},
   dbug:{name:"Dead bug",kind:"reps",block:"Core",rest:30,cue:["On your back, arms up, knees bent at 90.","Lower opposite arm and leg slowly.","Lower back stays pressed to the floor."]},
   carry:{name:"Farmer carry",kind:"weight",block:"Core",rest:60,cue:["Heaviest dumbbells you can grip, one in each hand.","Walk tall, shoulders down.","About 30 m or 30 seconds."]},
+  neck:{name:"Neck isometric holds",kind:"check",block:"Prehab",rest:30,cue:["Sit or stand tall, chin slightly tucked.","Press your palm into your forehead and push back with your neck so nothing moves. Hold 10 seconds.","Repeat with your hand on the back of your head, then each side.","Use about half your effort. Never jerk or roll your head."]},
+  cop:{name:"Copenhagen plank, short lever",kind:"check",block:"Prehab",rest:30,cue:["Lie on your side, forearm on the floor under your shoulder.","Top knee resting on a bench or couch. Bottom leg tucked under.","Lift your hips until your body is straight. Press the top knee down into the bench.","Hold 15 seconds each side. Stop if you feel a pinch in your groin."]},
+  tib:{name:"Tibialis raise",kind:"reps",block:"Prehab",rest:30,cue:["Back and hips against a wall, heels about a foot out from it.","Legs straight. Lift your toes as high as you can.","Lower slowly. You should feel it in the front of your shins."]},
+  wall:{name:"Wall drive drill",kind:"check",block:"Speed",rest:45,cue:["Hands on a wall at shoulder height, body leaning about 45 degrees.","Straight line from head to heel, up on the balls of your feet.","Drive one knee up with your toe pulled up, then switch fast.","This is the body angle for your first three steps."]},
+  pmarch:{name:"Partner push march",kind:"check",block:"Speed",rest:60,cue:["A partner faces you and resists with hands on your shoulders.","Lean in about 45 degrees and march forward with strong knee drive for 10 m.","Partner gives steady resistance, not a brick wall.","No partner? Push into a wall and march in place hard for 10 seconds."]},
+  mb:{name:"Medicine ball scoop toss",kind:"reps",block:"Jumps",rest:60,home:"cmj",gymOnly:true,cue:["Use a light ball, about 6 to 10 lb.","Hold it between your legs and push your hips back.","Snap your hips forward and throw the ball forward and up as far as you can.","Throw in open space. Walk to get the ball and reset each rep."]},
+  cmj:{name:"Countermovement jump",kind:"reps",block:"Jumps",rest:60,cue:["Stand tall. Quick dip with your arms swinging back.","Jump straight up as high as you can.","Land soft and quiet, knees over toes, and hold for 2 seconds."]},
+  face:{name:"Cable face pull",kind:"weight",block:"Extras",rest:45,home:"rdfly",gymOnly:true,cue:["Rope handle set at about eye height.","Pull toward your face, hands finishing beside your ears, elbows high.","Squeeze your shoulder blades, then return slowly.","Keep it light. This is for healthy shoulders, not max weight."]},
+  rdfly:{name:"Bent-over dumbbell rear delt fly",kind:"weight",block:"Extras",rest:45,cue:["Light dumbbells. Hinge forward with a flat back.","Raise the dumbbells out to your sides, small bend in the elbows.","Squeeze your upper back, then lower slowly."]},
+  slrdl:{name:"Single-leg Romanian deadlift",kind:"weight",block:"Hamstrings",rest:60,cue:["One dumbbell in the hand opposite your standing leg.","Hinge forward as your back leg reaches straight back. Hips stay square to the floor.","Lower until your hamstring stretches, then stand tall.","Balance first, weight second. Touch a wall with your free hand if you wobble."]},
+  pallof:{name:"Cable Pallof press",kind:"weight",block:"Core",rest:45,home:"suit",gymOnly:true,cue:["Cable handle at chest height. Stand sideways to the machine.","Hold the handle at your chest, then press it straight out.","Don't let the cable twist you. Hold 2 seconds and bring it back.","Do both sides."]},
+  suit:{name:"Suitcase carry",kind:"weight",block:"Core",rest:45,cue:["One heavy dumbbell in one hand.","Walk tall for 30 m without leaning to either side.","Switch hands and walk back."]},
   cd:{name:"Cool-down",kind:"check",block:"Cool-down",rest:0,cue:["Walk 2 minutes.","Easy hip flexor stretch, 30 seconds each side.","Easy hamstring stretch, gentle, no pulling hard.","Drink water."]}
 };
 
 // [id, sets, reps, tier(30|45|60)]
 const T = {
  p1:{
-  Mon:{label:"Squat + Bench Day",items:[["wu",1,"8 min",30],["pu",2,"8",30],["lad1",3,"runs",30],["lad2",3,"runs",45],["sp1",4,"10 m",30],["sp2",3,"10 m",45],["sq",3,"8",30],["bench",3,"8",30],["lat",3,"10",30],["rdl",3,"8",45],["tc",2,"6",45],["curl",2,"10",60],["calf",2,"12 each",45],["py2",3,"3",60],["plk",2,"30 s",60],["cd",1,"5 min",45]]},
-  Wed:{label:"Push Press + Pull Day",items:[["wu",1,"8 min",30],["pu",2,"8",30],["lad3",3,"each way",30],["lad4",3,"runs",45],["py1",2,"15",45],["py3",3,"3 each",60],["pp",3,"8",30],["lat",3,"10",30],["sps",3,"8 each",30],["slb",2,"10 each",30],["tri",2,"10",45],["carry",3,"30 m",60],["dbug",2,"8 each",60],["cd",1,"5 min",45]]},
-  Fri:{label:"Full Body Day",items:[["wu",1,"8 min",30],["pu",2,"8",30],["lad2",3,"runs",30],["sp3",4,"10 m",30],["sp1",2,"10 m",60],["sq",3,"8",30],["pp",3,"8",30],["bench",3,"8",45],["gb",2,"5",30],["curl",2,"10",60],["tri",2,"10",60],["calf",2,"12 each",45],["spk",2,"20 s each",60],["cd",1,"5 min",45]]}
+  Mon:{label:"Squat + Bench Day",items:[["wu",1,"8 min",30],["pu",2,"8",30],["tib",2,"15",45],["lad1",3,"runs",30],["lad2",3,"runs",45],["wall",3,"5 each leg",30],["sp1",4,"10 m",30],["sp2",3,"10 m",45],["sq",3,"8",30],["bench",3,"8",30],["lat",3,"10",30],["rdl",3,"8",45],["tc",2,"6",45],["face",2,"12",45],["neck",2,"10 s each way",30],["curl",2,"10",60],["calf",2,"12 each",60],["py2",3,"3",60],["plk",2,"30 s",60],["cd",1,"5 min",45]]},
+  Wed:{label:"Push Press + Pull Day",items:[["wu",1,"8 min",30],["pu",2,"8",30],["lad3",3,"each way",30],["lad4",3,"runs",45],["py1",2,"15",45],["mb",3,"5",45],["py3",3,"3 each",60],["pp",3,"8",30],["lat",3,"10",30],["sps",3,"8 each",30],["slb",2,"10 each",45],["cop",2,"15 s each side",30],["pallof",2,"10 each side",45],["tri",2,"10",60],["carry",3,"30 m",60],["dbug",2,"8 each",60],["cd",1,"5 min",45]]},
+  Fri:{label:"Full Body Day",items:[["wu",1,"8 min",30],["pu",2,"8",30],["tib",2,"15",30],["lad2",3,"runs",30],["wall",2,"5 each leg",45],["sp3",4,"10 m",30],["pmarch",3,"10 m",45],["sp1",2,"10 m",60],["sq",3,"8",30],["pp",3,"8",30],["bench",3,"8",45],["slrdl",2,"6 each",30],["gb",2,"5",45],["face",2,"12",60],["neck",2,"10 s each way",30],["curl",2,"10",60],["tri",2,"10",60],["calf",2,"12 each",60],["spk",2,"20 s each",60],["cd",1,"5 min",45]]}
  },
  p2:{
-  Mon:{label:"Big Day: Squat + Bench",items:[["wu",1,"8 min",30],["pu",2,"10",30],["lad1",3,"runs",30],["sp1",4,"10 m",30],["sp3",3,"10 m",45],["sq",3,"6",30],["bench",3,"6",30],["lat",3,"8",30],["rdl",3,"8",45],["nord",2,"3",45],["curl",2,"10",60],["calf",2,"12 each",60],["py2",3,"3",60],["cd",1,"5 min",45]]},
-  Wed:{label:"Moderate: Push Press + Pull",items:[["wu",1,"8 min",30],["pu",2,"10",30],["lad3",2,"each way",30],["pp",3,"6",30],["lat",3,"8",30],["sps",3,"6 each",30],["slb",2,"10 each",45],["tri",2,"10",45],["carry",3,"30 m",60],["dbug",2,"8 each",60],["cd",1,"5 min",45]]},
-  Fri:{label:"Light: Feet + Recovery",items:[["wu",1,"8 min",30],["lad2",2,"runs",30],["lad4",2,"runs",30],["py1",2,"10",30],["gb",2,"5",30],["spk",2,"20 s each",30],["cd",1,"5 min",30]],max:30}
+  Mon:{label:"Big Day: Squat + Bench",items:[["wu",1,"8 min",30],["pu",2,"10",30],["tib",2,"15",45],["lad1",3,"runs",30],["wall",3,"5 each leg",30],["sp1",4,"10 m",30],["sp3",3,"10 m",45],["pmarch",3,"10 m",60],["sq",3,"6",30],["bench",3,"6",30],["lat",3,"8",30],["rdl",3,"8",45],["nord",2,"3",45],["face",2,"12",45],["neck",2,"10 s each way",30],["curl",2,"10",60],["calf",2,"12 each",60],["mb",3,"5",60],["py2",3,"3",60],["cd",1,"5 min",45]]},
+  Wed:{label:"Moderate: Push Press + Pull",items:[["wu",1,"8 min",30],["pu",2,"10",30],["lad3",2,"each way",30],["pp",3,"6",30],["lat",3,"8",30],["sps",3,"6 each",30],["slrdl",2,"6 each",45],["slb",2,"10 each",45],["cop",2,"15 s each side",30],["pallof",2,"10 each side",45],["tri",2,"10",60],["carry",3,"30 m",60],["dbug",2,"8 each",60],["cd",1,"5 min",45]]},
+  Fri:{label:"Light: Feet + Recovery",items:[["wu",1,"8 min",30],["tib",2,"15",30],["lad2",2,"runs",30],["lad4",2,"runs",30],["py1",2,"10",30],["gb",2,"5",30],["neck",2,"10 s each way",30],["spk",2,"20 s each",30],["cd",1,"5 min",30]],max:30}
  },
  p3:{
-  Mon:{label:"Big Day: Squat + Bench",items:[["wu",1,"8 min",30],["pu",2,"12",30],["lad1",2,"runs",30],["sp1",3,"10 m",30],["sp2",3,"10 m",45],["sq",3,"5",30],["bench",3,"5",30],["lat",3,"8",30],["rdl",3,"6",45],["nord",2,"4",45],["curl",2,"10",60],["calf",2,"15 each",60],["py2",3,"3",60],["cd",1,"5 min",45]]},
-  Wed:{label:"Moderate: Push Press + Pull",items:[["wu",1,"8 min",30],["pu",2,"12",30],["lad3",2,"each way",30],["pp",3,"5",30],["lat",3,"8",30],["stp",3,"6 each",30],["slb",2,"10 each",45],["tri",2,"10",45],["carry",3,"30 m",60],["dbug",2,"10 each",60],["cd",1,"5 min",45]]},
-  Fri:{label:"Primer: Wake the legs up",items:[["wu",1,"8 min",30],["lad2",2,"runs",30],["sp2",3,"10 m at 90%",30],["py1",2,"10",30],["gb",2,"5",30],["cd",1,"5 min",30]],max:30}
+  Mon:{label:"Big Day: Squat + Bench",items:[["wu",1,"8 min",30],["pu",2,"12",30],["tib",2,"15",45],["lad1",2,"runs",30],["wall",2,"5 each leg",30],["sp1",3,"10 m",30],["sp2",3,"10 m",45],["sq",3,"5",30],["bench",3,"5",30],["lat",3,"8",30],["rdl",3,"6",45],["nord",2,"4",45],["face",2,"12",45],["neck",2,"10 s each way",30],["curl",2,"10",60],["calf",2,"15 each",60],["mb",3,"5",60],["py2",3,"3",60],["cd",1,"5 min",45]]},
+  Wed:{label:"Moderate: Push Press + Pull",items:[["wu",1,"8 min",30],["pu",2,"12",30],["lad3",2,"each way",30],["pp",3,"5",30],["lat",3,"8",30],["stp",3,"6 each",30],["slrdl",2,"6 each",45],["slb",2,"10 each",45],["cop",2,"20 s each side",30],["pallof",2,"10 each side",45],["tri",2,"10",60],["carry",3,"30 m",60],["dbug",2,"10 each",60],["cd",1,"5 min",45]]},
+  Fri:{label:"Primer: Wake the legs up",items:[["wu",1,"8 min",30],["tib",2,"15",30],["lad2",2,"runs",30],["sp2",3,"10 m at 90%",30],["py1",2,"10",30],["gb",2,"5",30],["neck",2,"10 s each way",30],["cd",1,"5 min",30]],max:30}
  }
 };
 const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+/* Technique videos: [primary, backup]. Each checked to exist and allow playing in other sites. */
+const VID={
+ wu:["w5vOZmRUNsg","-JYel2_nhF8"], pu_incline:["Gvm5Q29UHbk","y8I66lWtNB8"], pu_floor:["WDIpL0pjun0","zF0jbubK_jU"],
+ lad1:["em63lCvm9CM","4a1YW0ldkq0"], lad2:["GKDY4urn2kQ","xx7w23chqVw"], lad3:["0382DkMR6tQ","1Dy9u1noPUc"], lad4:["9PDkdZD2eWA","aW-FQMXhPgM"],
+ sp1:["MgXvvuMyFfc","3X4hDM7T95g"], sp2:["96Idqyl7_1U","FlfsCUSTQN8"], sp3:["HG1f420KEg0","P0qNtllr148"],
+ py1:["7SIfCcfP4g0","MFmanwtYKiw"], py2:["vTcRSqGmc0M","BiaUluYAjNM"], py3:["Biqvx8sMuvs","XDBHOQoAa3w"],
+ sq_goblet:["9KzZD_n2r64","gCESNsDsbqk"], sq_smith:["Y1TBOzPU8vI","iAcRGCsG_PY"], sq_barbell:["-bJIpOq-LWk","N3QtbxeNqmg"],
+ be_db:["sTYWWaunX8o","J-gWN5hYwRU"], be_smith:["7FyJdsXeta8","KJSgqUDFe00"], be_barbell:["XFKZ6Yw8XbE","gBZkSn-zsD0"], floorpress:["T0Y3OBF1bNI","0JwAq4UN75Q"],
+ lat:["rpkWBC1gCcE","AOpi-p0cJkc"], latH:["ZRSGpBUVcNw","2AUbzsDCgaQ"], pp_db:["vuaYVK8xyqo","bmbnyoQsL48"], pp_bb:["sIOlizzBMaY","gFmV302JErc"],
+ rdl:["hQgFixeXdZo","3USggQXRw_U"], sps:["Ca9P1Te6vvA","5VG4UnfA7Bk"], stp:["vR3a4WSbPAc","hgkk12L_Umk"],
+ tc:["8l3HR7vpdh0","cWSsWpuxmYM"], slb:["3NXv0Nany-Q","egs6m4J8u8c"], gb:["AGTKcst01XY","L3sXqp-6RTk"], nord:["3-4pKUhkzoQ","lKYSDpJG82c"],
+ curl:["ykJmrZ5v0Oo","nBzLCE-dcRQ"], tri:["a9oPnZReIRE","IJ6J7EKprsc"], calf:["_rKgZMP1X5o","Ux47hU-ePXs"],
+ plk:["mH5Sfb_KTGg","gSDNblPRh1U"], spk:["44ND4bOB-T0","Np5FR3qN3Gg"], dbug:["g_BYB0R-4Ws","bxn9FBrt4-A"], carry:["D1r4dzFMIsA","z7E_YU9P1jU"],
+ neck:["l47A8YnwPgk","AglkiBOgO1Y"], cop:["nhGK-DxiGBE","WNCWhAPnZRQ"], tib:["UmHbtN0iFMg","dnxy5DhY0Ks"],
+ wall:["4UFpSMFrT8E","MWO1ax1TW_g"], pmarch:["LErBDuCq-oQ","nfL0FRZTkV4"], mb:["UmLEPjElr4s","LcwfLuXjKg4"], cmj:["Jb63W4LQ8Ak","EUl3rryoXIU"],
+ face:["eTCBSFlCJ_s","6chrLjsE47c"], rdfly:["UO_v23hHAdM","Lec8GC1SiS8"], slrdl:["pJewPISyHjw","k83AIfjDbnI"], pallof:["u4XcUc_3F5s","HXrLaqNIkTs"], suit:["y-hn_Ha1-RE","4y8EFpPn1rk"]
+};
+for(const k in EX) EX[k].vid=k;
+const LEVEL_VID={squat:["sq_goblet","sq_smith","sq_barbell"],bench:["be_db","be_smith","be_barbell"],press:["pp_db","pp_bb"],push:["pu_incline","pu_incline","pu_floor"]};
+const HOME_VID={squat:"sq_goblet",bench:"floorpress",press:"pp_db"};
+function vidBlock(key,label){
+  const v=VID[key]; if(!v) return "";
+  return `<div class="vwrap"><button type="button" class="vbtn" data-vk="${key}" aria-expanded="false"><span aria-hidden="true">&#9654;</span> ${label||"Watch how"}</button><div class="vbox" hidden></div></div>`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest&&e.target.closest(".vbtn"); if(!b) return;
+  const box=b.nextElementSibling; const open=b.getAttribute("aria-expanded")==="true";
+  if(open){ box.innerHTML=""; box.hidden=true; b.setAttribute("aria-expanded","false"); return; }
+  const v=VID[b.dataset.vk]; let i=0;
+  const show=()=>{ const id=v[i];
+    box.innerHTML=`<div class="vframe"><iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1&modestbranding=1" title="Technique video" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
+      <div class="row small"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Open in YouTube</a>${v[i+1]?`<button type="button" class="linkbtn" data-alt="1">Video not working? Try another</button>`:""}</div>`;
+    const alt=box.querySelector("[data-alt]"); if(alt) alt.onclick=()=>{i++;show()}; };
+  show(); box.hidden=false; b.setAttribute("aria-expanded","true");
+});
 
 /* ---------- Helpers ---------- */
 const $=s=>document.querySelector(s);
@@ -313,9 +368,9 @@ function buildSession(dayKey){
 function exInfo(item){
   const ex=item.ex;
   if(ex.levels){ const k=ex.levels, arr=LEVELS[k]; const lv=Math.min(S.settings[k]||0,arr.length-1);
-    if(S.where==="home"&&HOME_LEVEL[k]){ const H=HOME_LEVEL[k]; return {name:H.name,cue:H.cue,unlock:"",lv,levels:arr,lkey:k,home:true}; }
-    const L=arr[lv]; return {name:L.name,cue:L.cue,unlock:L.unlock,lv,levels:arr,lkey:k}; }
-  return {name:ex.name,cue:ex.cue};
+    if(S.where==="home"&&HOME_LEVEL[k]){ const H=HOME_LEVEL[k]; return {name:H.name,cue:H.cue,unlock:"",lv,levels:arr,lkey:k,home:true,vid:HOME_VID[k]}; }
+    const L=arr[lv]; return {name:L.name,cue:L.cue,unlock:L.unlock,lv,levels:arr,lkey:k,vid:LEVEL_VID[k][lv]}; }
+  return {name:ex.name,cue:ex.cue,vid:ex.vid};
 }
 function lastPain(){ const s=sortedSessions().find(x=>typeof x.pain==="number"); return s?s.pain:0; }
 function sortedSessions(){ return [...S.sessions].sort((a,b)=>b.date<a.date?-1:b.date>a.date?1:(b.saved||0)-(a.saved||0)); }
@@ -361,7 +416,7 @@ function renderToday(){
   let blk="";
   for(const it of s.items){ const info=exInfo(it);
     if(it.ex.block!==blk){blk=it.ex.block;h+=`<li class="blk">${esc(blk)}</li>`;}
-    h+=`<li><span>${esc(info.name)}</span><span class="dose">${it.sets>1?it.sets+" &times; ":""}${esc(it.reps)}</span></li>`; }
+    h+=`<li><span>${esc(info.name)}</span><span class="dose">${it.sets>1?it.sets+" &times; ":""}${esc(it.reps)}</span>${vidBlock(info.vid,"Video")}</li>`; }
   h+=`</ul></div>`;
   $("#app").innerHTML=h;
   bindSeg("where",v=>{S.where=v;ls.set("cr-where",v);render()});
@@ -395,7 +450,7 @@ function renderRun(){
   let h=`<div class="row" style="justify-content:space-between"><span class="step-count">STEP ${R.step+1} OF ${total} &middot; ${esc(e.block.toUpperCase())}</span><button class="btn ghost small" id="quit">Exit</button></div>
     <div class="progress"><i style="width:${Math.round(R.step/total*100)}%"></i></div>
     <div class="card"><h1>${esc(e.name)}</h1><div class="bignum">${e.sets.length>1?e.sets.length+" &times; ":""}${esc(e.reps)}</div>
-    <ul class="cues">${(info.cue||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`;
+    <ul class="cues">${(info.cue||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ul>${vidBlock(info.vid)}`;
   if(info.levels){
     h+=`<div class="label">Level</div><div class="levels">${info.levels.map((L,i)=>`<span class="chip ${i===info.lv?"on":""}">${i+1}. ${esc(L.name.split(" (")[0])}</span>`).join("")}</div>`;
     if(info.home) h+=`<div class="banner info small">Home version. Your gym level stays saved for next gym day.</div>`;
@@ -501,6 +556,7 @@ function renderPlan(){
     <div class="banner info small">Signed in as ${esc(S.user&&S.user.email||"")}. Sessions save to your online log.</div>
     <button class="btn ghost" id="signout">Sign out</button></div>
   <div class="card"><h2>Backup</h2><p class="small muted" style="margin:0">Save every set you've logged as a spreadsheet file. Do it once a month.</p><button class="btn ghost" id="export">Save backup file</button><div id="exmsg"></div></div>
+  <div class="card"><h2>Exercise library</h2><p class="small muted" style="margin:0">Every exercise in your program with a technique video. Watch new ones before your session.</p>${libraryHtml()}</div>
   <div class="card"><h2>Rules</h2><ul class="cues">
     <li>Sharp pain anywhere: stop that exercise and tell Dad.</li>
     <li>Backs of your legs sore after sprints two sessions in a row: tell Dad before the next sprint day.</li>
@@ -516,6 +572,18 @@ function renderPlan(){
 }
 
 /* Log */
+function libraryHtml(){
+  const order=["Warm-up","Prehab","Ladder","Speed","Jumps","Main lifts","Strength","Hamstrings","Extras","Core"];
+  const used=new Set(); for(const p in T) for(const d in T[p]) for(const it of T[p][d].items){ used.add(it[0]); const e=EX[it[0]]; if(e.home) used.add(e.home); }
+  const rows={};
+  const add=(blk,name,vk,note)=>{(rows[blk]=rows[blk]||[]).push({name,vk,note})};
+  for(const id of used){ const e=EX[id]; if(id==="cd") continue;
+    if(e.levels){ LEVELS[e.levels].forEach((L,i)=>add(e.block,L.name,LEVEL_VID[e.levels][i],"Level "+(i+1)));
+      if(HOME_LEVEL[e.levels]&&HOME_VID[e.levels]!==LEVEL_VID[e.levels][0]) add(e.block,HOME_LEVEL[e.levels].name,HOME_VID[e.levels],"Home"); }
+    else add(e.block,e.name,id,e.gymOnly?"Gym":(Object.values(EX).some(x=>x.home===id)?"Home":"")); }
+  return order.filter(b=>rows[b]).map(b=>`<div class="label" style="padding-top:6px">${esc(b)}</div><ul class="plan-list lib">${rows[b].map(r=>`<li><span>${esc(r.name)}</span><span class="small muted">${esc(r.note)}</span>${vidBlock(r.vk)}</li>`).join("")}</ul>`).join("");
+}
+
 /* ---------- Storage ---------- */
 function localAll(){ return ls.get("cr-sessions",{}); }
 function deletedIds(){ return ls.get("cr-deleted",[]); }
@@ -569,7 +637,7 @@ function spark(vals,lowerBetter){
 }
 
 /* ---------- Analysis ---------- */
-const BLOCK_ORDER=["Main lifts","Strength","Hamstrings","Extras","Core","Warm-up"];
+const BLOCK_ORDER=["Main lifts","Strength","Hamstrings","Extras","Core","Prehab","Jumps","Warm-up"];
 function liftSeries(){
   const by={};
   const asc=[...S.sessions].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.saved||0)-(b.saved||0));
