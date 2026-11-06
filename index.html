@@ -387,6 +387,7 @@ function render(){
   $("nav.tabs").hidden=!!(S.run||S.edit);
   if(!S.authReady){ $("nav.tabs").hidden=true; $("#app").innerHTML=`<div class="card"><p class="muted" style="margin:0">Loading.</p></div>`; return; }
   if(!S.user||S.recovery){ $("nav.tabs").hidden=true; return renderAuth(); }
+  if(S.viewOnly){ S.run=null; S.edit=null; }
   if(S.run) return renderRun();
   if(S.edit) return renderEdit();
   if(S.tab==="today") renderToday(); else if(S.tab==="plan") renderPlan(); else if(S.tab==="analysis") renderAnalysis(); else renderLog();
@@ -415,7 +416,8 @@ function renderToday(){
      ${S.strengthOnly?`<p class="small muted" style="margin:0">Ladder, sprints and jumps are hidden. Switch to Full plan to see them.</p>`:""}</div>`;
   const draft=ls.get("cr-draft",null);
   const resume=draft&&draft.date===todayStr&&draft.day===S.day;
-  h+=`<button class="btn" id="start">${resume?"Resume session":"Start session"}</button>`;
+  if(S.viewOnly) h+=`<div class="banner info">Read-only view of Chase's log. You can see his plan, History and Analysis, but you can't start or change sessions.</div>`;
+  else h+=`<button class="btn" id="start">${resume?"Resume session":"Start session"}</button>`;
 
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><h2>Today's list</h2><span class="muted small">${s.items.length} steps</span></div><ul class="plan-list">`;
   let blk="";
@@ -428,7 +430,7 @@ function renderToday(){
   bindSeg("len",v=>{S.len=Number(v);ls.set("cr-len",S.len);render()});
   bindSeg("day",v=>{S.day=v;render()});
   bindSeg("mode",v=>{S.strengthOnly=v==="1";ls.set("cr-strength",S.strengthOnly);render()});
-  $("#start").onclick=()=>startRun(resume?draft:null);
+  if($("#start")) $("#start").onclick=()=>startRun(resume?draft:null);
 }
 function bindSeg(id,fn){ const el=document.getElementById(id); if(!el) return; el.querySelectorAll("button").forEach(b=>b.onclick=()=>fn(b.dataset.v)); }
 
@@ -559,7 +561,7 @@ function renderPlan(){
       <li>Open the app from the new home screen icon and sign in with your email and password. You stay signed in after that.</li>
       <li>Always open the app from that icon.</li>
     </ol>
-    <div class="banner info small">Signed in as ${esc(S.user&&S.user.email||"")}. Sessions save to your online log.</div>
+    <div class="banner info small">Signed in as ${esc(S.user&&S.user.email||"")}. ${S.viewOnly?"Read-only view of Chase's log.":"Sessions save to your online log."}</div>
     <button class="btn ghost" id="signout">Sign out</button></div>
   <div class="card"><h2>Backup</h2><p class="small muted" style="margin:0">Save every set you've logged as a spreadsheet file. Do it once a month.</p><button class="btn ghost" id="export">Save backup file</button><div id="exmsg"></div></div>
   <div class="card"><h2>Exercise library</h2><p class="small muted" style="margin:0">Every exercise in your program with a technique video. Watch new ones before your session.</p>${libraryHtml()}</div>
@@ -571,7 +573,7 @@ function renderPlan(){
     <li>Form first. A heavier weight with bad form is a step backward.</li>
     <li>Sleep 9 hours on practice nights if you can.</li></ul></div>`;
   $("#app").innerHTML=h;
-  const setLv=async(k,v)=>{ S.settings[k]=Number(v); ls.set("cr-settings",S.settings); render(); if(db){ try{ await sb.from("settings").upsert({data:{...S.settings},updated_at:new Date().toISOString()},{onConflict:"user_id"}); }catch(e){} } };
+  const setLv=async(k,v)=>{ if(S.viewOnly) return; S.settings[k]=Number(v); ls.set("cr-settings",S.settings); render(); if(db){ try{ await sb.from("settings").upsert({data:{...S.settings},updated_at:new Date().toISOString()},{onConflict:"user_id"}); }catch(e){} } };
   $("#signout").onclick=async()=>{ try{ await sb.auth.signOut(); }catch(e){} };
   $("#export").onclick=()=>exportBackup($("#export"),$("#exmsg"));
   bindSeg("lvsq",v=>setLv("squat",v)); bindSeg("lvpu",v=>setLv("push",v)); bindSeg("lvbe",v=>setLv("bench",v)); bindSeg("lvpp",v=>setLv("press",v));
@@ -614,7 +616,8 @@ async function deleteSession(id){
 }
 async function loadSessions(){
   if(!db) return false;
-  const {data,error}=await sb.from("sessions").select("id,doc").order("date",{ascending:false}).limit(1000);
+  let q=sb.from("sessions").select("id,doc"); if(S.viewOnly) q=q.eq("user_id",S.ownerId);
+  const {data,error}=await q.order("date",{ascending:false}).limit(1000);
   if(error){ S.stale=true; S.loaded=true; return false; }
   S.sessions=data.map(r=>({...r.doc,id:r.id})); S.synced=true; S.stale=false; S.loaded=true;
   try{ const all=localAll(); for(const x of S.sessions) all[x.id]=x; ls.set("cr-sessions",all); }catch(e){}
@@ -622,15 +625,17 @@ async function loadSessions(){
 }
 async function loadSettings(){
   if(!db) return;
-  const {data}=await sb.from("settings").select("data").maybeSingle();
+  let q=sb.from("settings").select("data"); q=S.viewOnly?q.eq("user_id",S.ownerId):q.eq("user_id",S.user.id);
+  const {data}=await q.maybeSingle();
   if(data&&data.data){ S.settings=Object.assign({squat:0,push:0,bench:0,press:0},data.data); ls.set("cr-settings",S.settings); }
 }
 async function syncLocal(){
+  if(S.viewOnly) return true;
   const un=unsynced(); if(!un.length) return true;
   const r=await sb.from("sessions").upsert(un.map(d=>({id:d.id,date:d.date,doc:d,updated_at:new Date().toISOString()})),{onConflict:"user_id,id"});
   if(r.error) return false; S.offlineNote=false; await loadSessions(); return true;
 }
-function unsynced(){ if(!db||!S.synced) return []; const have=new Set(S.sessions.map(s=>s.id)); const del=new Set(deletedIds()); return Object.values(localAll()).filter(s=>s.id&&!have.has(s.id)&&!del.has(s.id)); }
+function unsynced(){ if(!db||!S.synced||S.viewOnly) return []; const have=new Set(S.sessions.map(s=>s.id)); const del=new Set(deletedIds()); return Object.values(localAll()).filter(s=>s.id&&!have.has(s.id)&&!del.has(s.id)); }
 
 /* ---------- Charts ---------- */
 function spark(vals,lowerBetter){
@@ -691,7 +696,7 @@ function renderAnalysis(){
   const asc=[...all].reverse();
   const spVals=asc.map(s=>{const ts=(s.ex||[]).filter(x=>x.kind==="sprint").flatMap(x=>x.sets.map(z=>z.t)).filter(t=>t>0);return ts.length?Math.min(...ts):null}).filter(v=>v);
   const pains=all.slice(0,8).reverse();
-  let h=`<div class="card"><h2>How it's going</h2>
+  let h=(S.viewOnly?`<div class="banner info small">Read-only view of Chase's log.</div>`:"")+`<div class="card"><h2>How it's going</h2>
     <p class="small muted" style="margin:0">Each lift compares your last ${"3"} sessions with the ${"3"} before. Improving means more weight or more total volume (weight &times; reps, added up).</p>
     <div class="stats">
       <div class="stat"><span class="label">Sessions, last 4 weeks</span><span class="bignum" style="font-size:34px">${recentCount}</span><span class="small muted">Target about ${phaseFor(todayStr).key==="p1"?12:12}</span></div>
@@ -738,7 +743,7 @@ function renderLog(){
 
   const un=unsynced();
   if(un.length) h+=`<div class="card"><p style="margin:0">${un.length} session${un.length>1?"s are":" is"} saved on this phone but not online yet.</p><button class="btn" id="sync">Upload ${un.length>1?"them":"it"} now</button></div>`;
-  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h2>History</h2><span class="muted small">${list.length} logged</span></div><p class="small muted" style="margin:0">Tap a session to fix a number, change the date, or delete it.</p>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h2>History</h2><span class="muted small">${list.length} logged</span></div><p class="small muted" style="margin:0">${S.viewOnly?"Read-only view of Chase's sessions.":"Tap a session to fix a number, change the date, or delete it."}</p>`;
   if(!S.loaded) h+=`<p class="muted">Loading your log.</p>`;
   else if(!list.length) h+=`<p class="muted" style="margin:0">No sessions yet. Finish your first one from the Today tab and it shows up here.</p>`;
   else{
@@ -751,7 +756,7 @@ function renderLog(){
   }
   h+=`</div>`;
   $("#app").innerHTML=h;
-  document.querySelectorAll(".logitem").forEach(b=>b.onclick=()=>{ const s=S.sessions.find(x=>x.id===b.dataset.id); if(!s) return; S.edit={orig:s.id,doc:JSON.parse(JSON.stringify(s)),confirm:false}; render(); window.scrollTo(0,0); });
+  if(!S.viewOnly) document.querySelectorAll(".logitem").forEach(b=>b.onclick=()=>{ const s=S.sessions.find(x=>x.id===b.dataset.id); if(!s) return; S.edit={orig:s.id,doc:JSON.parse(JSON.stringify(s)),confirm:false}; render(); window.scrollTo(0,0); });
   const sy=$("#sync"); if(sy) sy.onclick=async()=>{ sy.disabled=true; sy.textContent="Adding"; const ok=await syncLocal(); if(!ok){ sy.disabled=false; sy.textContent="Try again"; } else render(); };
 }
 function renderEdit(){
@@ -873,15 +878,18 @@ S.sessions=Object.entries(ls.get("cr-sessions",{})).map(([k,v])=>({...v,id:v.id|
 S.store="db";
 render();
 async function onSignedIn(){
-  db=sb; S.loaded=false; render();
-  await loadSessions(); await loadSettings(); await syncLocal();
+  db=sb; S.loaded=false;
+  try{ const {data:v}=await sb.from("viewers").select("owner_id").limit(1).maybeSingle(); S.viewOnly=!!(v&&v.owner_id); S.ownerId=v?v.owner_id:null; }catch(e){ S.viewOnly=false; }
+  if(S.viewOnly){ S.tab="analysis"; S.run=null; S.edit=null; }
+  render();
+  await loadSessions(); try{ await loadSettings(); }catch(e){} await syncLocal();
   if(!S.run&&!S.edit) render();
 }
 if(sb){
   sb.auth.onAuthStateChange((ev,session)=>{
     const had=S.user&&S.user.id; S.user=session?session.user:null; S.authReady=true;
     if(ev==="PASSWORD_RECOVERY"){ S.recovery=true; S.auth.step="newpass"; render(); return; }
-    if(!S.user){ db=null; S.auth={step:"signin",email:"",msg:""}; render(); return; }
+    if(!S.user){ db=null; S.viewOnly=false; S.ownerId=null; S.auth={step:"signin",email:"",msg:""}; render(); return; }
     if(had!==S.user.id) setTimeout(onSignedIn,0);
   });
 } else { S.authReady=true; render(); }
