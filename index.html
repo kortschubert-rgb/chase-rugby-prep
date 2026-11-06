@@ -280,6 +280,8 @@ const T = {
  }
 };
 const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const SPEED_BLOCKS=["Ladder","Speed","Jumps"];
+const hiddenBlock=b=>S.strengthOnly&&SPEED_BLOCKS.includes(b);
 /* Technique videos: [primary, backup]. Each checked to exist and allow playing in other sites. */
 const VID={
  wu:["w5vOZmRUNsg","-JYel2_nhF8"], pu_incline:["Gvm5Q29UHbk","y8I66lWtNB8"], pu_floor:["WDIpL0pjun0","zF0jbubK_jU"],
@@ -336,7 +338,7 @@ const today=new Date(); const todayStr=iso(today);
 const S={
   tab:"today", edit:null, synced:false, user:null, authReady:false, auth:{step:"signin",email:"",msg:""},
   day:(["Mon","Wed","Fri"].includes(DAYS[today.getDay()])?DAYS[today.getDay()]:null),
-  where:ls.get("cr-where","gym"), len:ls.get("cr-len",45),
+  where:ls.get("cr-where","gym"), len:ls.get("cr-len",45), strengthOnly:ls.get("cr-strength",true),
   settings:{squat:0,push:0,bench:0,press:0},
   sessions:[], loaded:false, store:"local", stale:false,
   run:null
@@ -355,6 +357,7 @@ function buildSession(dayKey){
     if(tier>len) continue;
     let id=id0, ex=EX[id];
     if(S.where==="home"&&ex.gymOnly){ id=ex.home; ex=EX[id]; }
+    if(hiddenBlock(ex.block)) continue;
     if(sore&&(ex.block==="Speed"||ex.block==="Jumps")) continue;
     let sets=sets0;
     if(ex.kind!=="check"||ex.block==="Ladder"){
@@ -402,12 +405,14 @@ function renderToday(){
   }
   const s=buildSession(S.day);
   h+=`<h1>${esc(s.label)}</h1><p class="muted" style="margin:0">${esc(ph.name)}${isTrainDay&&S.day===wd?"":" &middot; "+S.day+" session"}</p></div>`;
-  if(s.sore) h+=`<div class="banner bad">Your last check said your hamstrings were sore or hurting. Sprints and jumps are off today. Tell Dad before your next sprint day.</div>`;
+  if(s.sore) h+=`<div class="banner bad">Your last check said your hamstrings were sore or hurting. ${S.strengthOnly?"Take it easy on hamstring exercises today and tell Dad, especially before practice.":"Sprints and jumps are off today. Tell Dad before your next sprint day."}</div>`;
   if(s.holiday) h+=`<div class="banner info">Holiday week. One less set on everything. Enjoy the break.</div>`;
   if(ph.key==="p1"&&ph.week<=2) h+=`<div class="banner info">First two weeks: learning weeks. Lighter sets, focus on form.</div>`;
   h+=`<div class="card"><div class="label">Where</div>${seg("where",[["gym","Gym"],["home","Home"]],S.where)}
      <div class="label">Time</div>${seg("len",T[ph.key][S.day].max?[[30,"30 min"]]:[[30,"30 min"],[45,"45 min"],[60,"60 min"]],s.len)}
-     <div class="label">Day</div>${seg("day",[["Mon","Mon"],["Wed","Wed"],["Fri","Fri"]],S.day)}</div>`;
+     <div class="label">Day</div>${seg("day",[["Mon","Mon"],["Wed","Wed"],["Fri","Fri"]],S.day)}
+     <div class="label">Show</div>${seg("mode",[["1","Strength only"],["0","Full plan"]],S.strengthOnly?"1":"0")}
+     ${S.strengthOnly?`<p class="small muted" style="margin:0">Ladder, sprints and jumps are hidden. Switch to Full plan to see them.</p>`:""}</div>`;
   const draft=ls.get("cr-draft",null);
   const resume=draft&&draft.date===todayStr&&draft.day===S.day;
   h+=`<button class="btn" id="start">${resume?"Resume session":"Start session"}</button>`;
@@ -422,6 +427,7 @@ function renderToday(){
   bindSeg("where",v=>{S.where=v;ls.set("cr-where",v);render()});
   bindSeg("len",v=>{S.len=Number(v);ls.set("cr-len",S.len);render()});
   bindSeg("day",v=>{S.day=v;render()});
+  bindSeg("mode",v=>{S.strengthOnly=v==="1";ls.set("cr-strength",S.strengthOnly);render()});
   $("#start").onclick=()=>startRun(resume?draft:null);
 }
 function bindSeg(id,fn){ const el=document.getElementById(id); if(!el) return; el.querySelectorAll("button").forEach(b=>b.onclick=()=>fn(b.dataset.v)); }
@@ -495,7 +501,7 @@ function renderFinish(){
   const R=S.run; const hadSprint=R.ex.some(x=>x.block==="Speed"||x.block==="Jumps");
   const opts=[[0,"None","Feels fine"],[1,"Tight","A little tight"],[2,"Sore","Sore, bothers me"],[3,"Pain","Hurts to run"]];
   let h=`<div class="card"><div class="label">Session done</div><h1>Nice work.</h1><p class="muted" style="margin:0">${R.ex.filter(x=>x.sets.every(s=>s.done)).length} of ${R.ex.length} steps checked off.</p></div>
-  <div class="card"><h2>Hamstring check</h2><p style="margin:0">How do the backs of your legs and behind your knees feel ${hadSprint?"after the sprints":"right now"}?</p>
+  <div class="card"><h2>Hamstring check</h2><p style="margin:0">How do the backs of your legs and behind your knees feel ${hadSprint?"after the sprints":"right now, including after your last practice"}?</p>
   <div class="pain" id="pain">${opts.map(([v,l,d])=>`<button type="button" data-v="${v}" aria-pressed="${R.pain===v}"><b>${v}</b>${l}<span class="small muted">${d}</span></button>`).join("")}</div>
   <div id="painmsg"></div>
   <div class="label">Date</div><input type="date" id="sdate" value="${esc(R.date)}" max="${todayStr}" style="font:600 17px var(--body);padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
@@ -581,7 +587,7 @@ function libraryHtml(){
     if(e.levels){ LEVELS[e.levels].forEach((L,i)=>add(e.block,L.name,LEVEL_VID[e.levels][i],"Level "+(i+1)));
       if(HOME_LEVEL[e.levels]&&HOME_VID[e.levels]!==LEVEL_VID[e.levels][0]) add(e.block,HOME_LEVEL[e.levels].name,HOME_VID[e.levels],"Home"); }
     else add(e.block,e.name,id,e.gymOnly?"Gym":(Object.values(EX).some(x=>x.home===id)?"Home":"")); }
-  return order.filter(b=>rows[b]).map(b=>`<div class="label" style="padding-top:6px">${esc(b)}</div><ul class="plan-list lib">${rows[b].map(r=>`<li><span>${esc(r.name)}</span><span class="small muted">${esc(r.note)}</span>${vidBlock(r.vk)}</li>`).join("")}</ul>`).join("");
+  return order.filter(b=>rows[b]&&!hiddenBlock(b)).map(b=>`<div class="label" style="padding-top:6px">${esc(b)}</div><ul class="plan-list lib">${rows[b].map(r=>`<li><span>${esc(r.name)}</span><span class="small muted">${esc(r.note)}</span>${vidBlock(r.vk)}</li>`).join("")}</ul>`).join("");
 }
 
 /* ---------- Storage ---------- */
